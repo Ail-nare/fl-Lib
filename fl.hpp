@@ -677,7 +677,11 @@ namespace fl {
         struct [[maybe_unused]] specialization<Ref<Ts...>, Ref> : fl::true_type {};
 
         template <typename, typename=void>
-        struct [[maybe_unused]] iterable : fl::false_type {};
+        struct [[maybe_unused]] iterable : fl::false_type {
+            struct Attribute {
+                [[maybe_unused]] static constexpr size_t depth = 0;
+            };
+        };
 
         template <typename T>
         struct [[maybe_unused]] iterable<T,
@@ -686,7 +690,14 @@ namespace fl {
                 decltype(++std::declval<decltype(std::begin(std::declval<T&>()))&>()),
                 decltype(*std::begin(std::declval<T&>()))
             >
-        > : fl::true_type {};
+        > : fl::true_type, redirect<decltype(*std::begin(std::declval<T&>()))> {
+            struct Attribute {
+                struct next : iterable<decltype(*std::begin(std::declval<T&>()))> {};
+                [[maybe_unused]] static constexpr size_t depth = 1 + next::Attribute::depth;
+            };
+        };
+        template <typename T>
+        using iterable_t = typename iterable<T>::type;
 
         /// return<bool> if x{as a '*x'} is null return true else return false
         template <typename T, typename std::enable_if<fl::Operator::Has::Equal<T, std::nullptr_t>::value, int>::type=0>
